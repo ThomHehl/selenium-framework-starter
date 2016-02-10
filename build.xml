@@ -1,0 +1,156 @@
+<project name="test_automation" basedir="." default="test">
+
+	<property name="workspace.home" value="${basedir}" />
+
+	<property name="source.dir" value="${workspace.home}/src" />
+	<property name="test.dir" value="${workspace.home}/test" />
+	<property name="compiledfiles.dest" value="${workspace.home}/build" />
+
+	<property name="testng.jarpath" value="${workspace.home}/ext-lib/testng//testng-6.8.jar" />
+
+	<!--   indicates which browser specific test cases(FIREFOX,CHROME) will run -->
+	<property name="test.browser" value="ALL"/>
+	
+	<!--    where to store screenshot captured during test failure -->
+	<property name="screenshot.path" value="\\satsahoowin7a\Satya\"/>
+	
+	<!--     which environment (qa or prod) to use for tests-->
+	<property name="test.environment" value="www"/>
+	
+	<property name="qa.password" value=""/>
+	
+	<!--   indicates where the test cases will run 'local|remote' -->
+	<property name="test.run.env" value="local"/>
+	
+	<!-- The remote hub url for remote web browser test  -->
+	<property name="hub.url" value="http://selenium01.cpdit.lexmark.ds:4444/wd/hub"/>
+	
+	<!--   indicates which locales to use for testing -->
+	<!-- Possible values are  'WORLD_WIDE','ATG','COMMERCE' & 'CUSTOMIZE' -->
+	<property name="test.locale.group" value="WORLD_WIDE" />
+	
+	<!-- Specific locale for which all applicable test should run, to use this - set test.locale.group property as 'SPECIFIC'   -->
+	<property name="specific.locale" value="" />
+	
+	<property name="test.groups" value="" />
+	
+
+	<target name="init" depends="clean">
+		<echo message="Making new directories..."/>
+		<mkdir dir="${compiledfiles.dest}" />
+	</target>
+
+	<target name="clean" >
+		<echo message="Cleaning any earlier directories..."/>
+		<delete dir="${compiledfiles.dest}" />
+		<delete dir="${workspace.home}/test-output" />
+	</target>
+
+	
+	<!-- Creates the classpaths needed for later operations -->
+	<path id="selenium.classpath">
+		<fileset dir="${workspace.home}/ext-lib/selenium" includes="*.jar"/>
+	</path>
+
+	<path id="log4j.classpath">
+		<fileset dir="${workspace.home}/ext-lib/log4j" includes="*.jar"/>
+	</path>
+
+	<path id="pageObject.compile.classpath">
+		<pathelement location="${testng.jarpath}" />
+		<path refid="log4j.classpath"/>
+		<path refid="selenium.classpath"/>
+	</path>
+
+	<path id="test.testng.compile.classpath">
+		<path refid="pageObject.compile.classpath"/>
+		<pathelement location="${compiledfiles.dest}" />
+	</path>
+
+	<path id="test.testng.runtime.classpath">
+		<path refid="test.testng.compile.classpath"/>
+	</path>
+
+
+	<target name="compile-all" depends="init">
+		<echo message="Compiling all code into directory ${compiledfiles.dest}" />
+		<echo message="Page objects first" />
+
+		<javac 	srcdir="${source.dir}" 
+					destdir="${compiledfiles.dest}"
+					debug="true">
+			<classpath refid="pageObject.compile.classpath"/>
+		</javac>
+
+		<echo message="Tests building now..." />
+		<javac srcdir="${test.dir}" 
+					destdir="${compiledfiles.dest}"
+					debug="true">
+			<classpath refid="test.testng.compile.classpath"/>
+		</javac>
+	</target>
+
+
+	<taskdef name="testng" classpathref="test.testng.compile.classpath" classname="org.testng.TestNGAntTask" />
+
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+		<classpath>
+			<pathelement location="${workspace.home}/ext-lib/ant/ant-contrib-1.0b3.jar"/>
+		</classpath>
+	</taskdef>
+
+	<!-- Selects the testng.xml file(s) to use based on the test.browser parameter -->
+	<target name="setConfig">
+		<echo message="test browser is: ${test.browser}"></echo>
+		<if>
+			<equals arg1="${test.browser}" arg2="ALL" />
+			<then>
+				<property name="test.config" value="testng-firefox.xml,testng-chrome.xml" />
+			</then>
+		</if>
+		<if>
+			<equals arg1="${test.browser}" arg2="FIREFOX" />
+			<then>
+				<property name="test.config" value="testng-firefox.xml" />
+			</then>
+		</if>
+		<if>
+			<equals arg1="${test.browser}" arg2="CHROME" />
+			<then>
+				<property name="test.config" value="testng-chrome.xml" />
+			</then>
+		</if>
+		<echo message="testng config is ${test.config}">
+		</echo>
+
+	</target>
+
+	<target name="test" depends="compile-all,setConfig">
+		<copy file="${workspace.home}/log4j.xml" todir="${compiledfiles.dest}" />
+		<echo message="config is ${test.config}"></echo>
+		<testng classpathref="test.testng.runtime.classpath" suitethreadpoolsize="3" parallel="tests" groups="${test.groups}">
+			
+			<sysproperty key="screenshot.path" value="${screenshot.path}" />
+			<sysproperty key="environment" value="${test.environment}" />
+			<sysproperty key="test.run.env" value="${test.run.env}" />
+			<sysproperty key="hub.url" value="${hub.url}" />
+			<sysproperty key="testLocale.group" value="${test.locale.group}" />
+			<sysproperty key="specific.testLocales" value="${specific.locale}" />
+			<sysproperty key="qa.pwd" value="${qa.password}" />
+			
+			<xmlfileset dir="${workspace.home}" includes="${test.config}"/>
+		</testng>
+	</target>
+
+	<!--target name="reports">
+	  <mkdir dir="${workspace.home}/test-report" />
+	  <junitreport todir="test-report">
+	    <fileset dir="${workspace.home}/test-output">
+	      <include name="*/*.xml"/>
+	    </fileset>
+	  
+	    <report format="frames"  todir="${workspace.home}/test-report"/>
+	  </junitreport>
+	</target-->
+
+</project>

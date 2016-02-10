@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+<suite name="Lexmark-WebDriver-Training-Firefox">
+	<parameter name="browser-type" value="FIREFOX" />
+	<test name="test-FIREFOX-1">
+	<parameter name="valid-domains" value="www-qa,www" />
+		<classes>
+			<class name="com.lexmark.automation.b2c.pages.test.HeaderTest"/>
+		</classes>
+	</test>
+</suite>
